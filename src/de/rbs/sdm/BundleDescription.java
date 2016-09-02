@@ -3,12 +3,13 @@ package de.rbs.sdm;
 import java.util.HashSet;
 import java.util.Set;
 
+/**
+ * Class to store information about a bundle.
+ * 
+ * @author tuemmler
+ *
+ */
 public class BundleDescription {
-	@Override
-	public String toString() {
-		return "BundleDescription [name=" + name + ", intf=" + intf + ", refs=" + refs + "]";
-	}
-
 	private final String name;
 	private final Set<String> intf = new HashSet<>();
 	private final Set<String> refs = new HashSet<>();
@@ -35,5 +36,11 @@ public class BundleDescription {
 
 	public Set<String> getReferences() {
 		return refs;
-	}	
+	}
+	
+	@Override
+	public String toString() {
+		return "BundleDescription [name=" + name + ", intf=" + intf + ", refs=" + refs + "]";
+	}
+	
 }
