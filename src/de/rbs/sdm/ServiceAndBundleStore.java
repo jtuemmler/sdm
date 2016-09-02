@@ -5,6 +5,8 @@ import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
+import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
 import java.util.HashSet;
 import java.util.Set;
 import java.util.zip.ZipEntry;
@@ -67,11 +69,11 @@ public class ServiceAndBundleStore {
 		}
     		
 		} catch (ParserConfigurationException e) {
-			// TODO Auto-generated catch block
 			e.printStackTrace();
+			printXml(buffer,length);
 		} catch (SAXException e) {
-			// TODO Auto-generated catch block
 			e.printStackTrace();
+			printXml(buffer,length);
 		} catch (UnsupportedEncodingException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
@@ -82,6 +84,10 @@ public class ServiceAndBundleStore {
 		
 	}
 	
+	private void printXml(byte[] buffer, int length) {
+		System.out.println(new String(buffer,0,length,StandardCharsets.UTF_8));
+	}
+
 	public void examineZip(ZipInputStream inStream) {
 		ZipEntry entry;
 		try {
@@ -89,17 +95,20 @@ public class ServiceAndBundleStore {
 			      if (!entry.isDirectory()) {
 
 			          //System.out.println(entry.getName());
-
 			          if (entry.getName().endsWith(".jar")) {
 			        	  //System.out.println("## Scanning " + entry.getName() + " ...");
 			        	  examineZip(new ZipInputStream(inStream));
 			          }
 			          if (entry.getName().contains("OSGI-INF") && entry.getName().endsWith(".xml")) {
 			        	  System.out.println("Reading " + entry.getName() + " ...");
-			        	  byte[] buffer = new byte[100000];
-			        	  int len = inStream.read(buffer);
-			        	  if (len < buffer.length) {
-			        		  examineXml(buffer,len);
+			        	  int len = 0;
+			        	  int offset = 0;
+			        	  byte[] buffer = new byte[100_000];
+			        	  while ((len = inStream.read(buffer,offset,buffer.length - offset)) > 0) {
+			        		  offset += len;
+			        	  }
+			        	  if (offset < buffer.length) {
+			        		  examineXml(buffer,offset);
 			        	  }
 			        	  else {
 			        		  System.err.println("Buffer too small!");
