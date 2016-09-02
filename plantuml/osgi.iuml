@@ -1,0 +1,115 @@
+' Macros to define service diagrams
+' Example:
+' [uml, file="diagnostic.png"]
+' --
+' !include %plantumlinc%/osgi.iuml
+' frame "Diagnostic" {
+'    service(Diagnostics)
+'    bundle(DiagnosticAdmin, Diagnostics)
+'    library(syslog)
+'    use(DiagnosticAdmin,syslog)
+' }
+' service(ConfigAdmin)
+' storage(Flash)
+' use(DiagnosticAdmin,ConfigAdmin)
+' flow(syslog,Flash)
+' note left of DiagnosticAdmin: This is a super cool note
+' --
+skinparam componentStyle uml2
+
+' Set appearance of components
+skinparam component {
+	ArrowColor Black
+    backgroundColor<<bundle>> #ffd083
+    backgroundColor<<component>> #ffd083
+    backgroundColor<<library>> #a0ffa0
+    BorderColor Black
+}
+
+' Set appearance of interfaces
+skinparam interface {
+	ArrowColor Black
+    BorderColor Black
+}
+' Set appearance of services
+skinparam rectangle {
+    backgroundColor<<service>> #fefec7
+}
+
+' Set appearance of storages
+skinparam database {
+    backgroundColor #99ccff
+}
+
+' Set appearance of notes
+skinparam note {
+	backgroundColor #f7f4f7
+	BorderColor Black
+}
+
+' Set appearance of sequence diagrams
+skinparam sequence {
+	ArrowColor Black
+	ActorBorderColor Black
+    ParticipantBorderColor Black	
+	LifeLineBorderColor Black
+}
+
+' Defines 'draft' style
+!define draft skinparam handwritten true
+
+' Defines a bundle; usage: bundle(name)
+!define bundle(a) [a] <<bundle>> as a
+
+' Defines a service; usage: service(name)
+!ifdef LOLLY_STYLE
+!define service(a) () "a" as a
+!else
+!define service(a) rectangle "a" <<service>> as a
+!endif
+
+' Defines a component; usage: component(name)
+!define component(a) [a] <<component>> as a
+
+' Defines a library; usage: library(name)
+!define library(a) [a] <<library>> as a
+
+' Defines a storage; usage: storage(name)
+!define storage(a) database a as a
+
+' These are overloads for the associations defined below, 
+' that accept a direction as third parameter. 
+' Direction may be: up, down, left, right
+!ifdef LOLLY_STYLE
+!define use(a,b,d) a -d-( b
+!define impl(a,b,d) a -d- b
+!else
+!define use(a,b,d) a .d.> b : <<use>>
+!define impl(a,b,d) a .d.|> b
+!endif
+!define useLib(a,b,d) a .d.> b : <<use>>
+!define flow(a,b,d) a .d.> b : <<flow>>
+
+' Adds an "use" association to the diagram (a uses b); usage: use(consumer, provider)
+!define use(a,b) use(a,b,down)
+
+' Adds an "useLib" association to the diagram (a uses b); usage: useLib(consumer, provider)
+!define useLib(a,b) useLib(a,b,down)
+
+' Adds a "data-flow" association to the diagram (information flows from a to b); usage: flow(source, destination)
+!define flow(a,b) a ..> b : <<flow>>
+
+' Adds an "implementation" association to the diagram (a implements b); usage: impl(implementation, interface)
+!define impl(a,b) impl(a,b,up)
+
+' This is an overload that allows to define the interface of a bundle directly
+!definelong bundle(a,b)
+	bundle(a)
+	impl(a,b)
+!enddefinelong
+
+' This is an overload that allows to define the interface of a bundle directly, including a direction
+!definelong bundle(a,b,d)
+	bundle(a)
+	impl(a,b,d)
+!enddefinelong
