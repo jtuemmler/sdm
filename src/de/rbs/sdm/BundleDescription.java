@@ -10,14 +10,14 @@ import java.util.Set;
  *
  */
 public class BundleDescription {
-	private final String name;
+	private String name = "";
 	private final Set<String> intf = new HashSet<>();
 	private final Set<String> refs = new HashSet<>();
 	
-	public BundleDescription(String name) {
+	public void setName(String name) {
 		this.name = name;
 	}
-
+	
 	public void addInterface(String name) {
 		intf.add(name);
 	}

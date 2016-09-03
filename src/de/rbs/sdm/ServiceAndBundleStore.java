@@ -6,8 +6,12 @@ import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
+import java.util.function.Consumer;
+import java.util.regex.Pattern;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;
 
@@ -26,9 +30,11 @@ import org.xml.sax.SAXException;
  *
  */
 public class ServiceAndBundleStore {
-	boolean verbose = false;
-	final Set<String> allServices = new HashSet<>();
-	final Set<BundleDescription> allBundles = new HashSet<>();
+	private boolean verbose = false;
+	private final Set<String> allServices = new HashSet<>();
+	private final Set<BundleDescription> allBundles = new HashSet<>();
+	private List<Pattern> identifierBlackList = new ArrayList<>();
+	private List<Pattern> bundleBlackList = new ArrayList<>();
 
 	/**
 	 * Print a message
@@ -38,15 +44,31 @@ public class ServiceAndBundleStore {
 			System.out.println(m);
 		}
 	}
-	
+
 	/**
-	 * Return attribute with the given name
+	 * @return Attribute with the given name
 	 */
 	private org.w3c.dom.Node getAttribute(org.w3c.dom.Node node, String attribute) {
 		if (node.hasAttributes()) {
 			return node.getAttributes().getNamedItem(attribute);
 		}
 		return null;
+	}
+
+	/**
+	 * Checks whether the given identifier is blacklisted. If not, call the consumer.
+	 * @return True, if the identifier was consumed
+	 */
+	private boolean ifNotBlackListed(String identifier, List<Pattern> blackList, Consumer<String> consumer) {
+		for (Pattern pattern : blackList) {
+			if (pattern.matcher(identifier).matches()) {
+				message("  Ignoring: " + identifier);
+				return false;
+			}
+		}
+		consumer.accept(identifier);
+
+		return true;
 	}
 
 	/**
@@ -65,27 +87,37 @@ public class ServiceAndBundleStore {
 			if (impl.getLength() > 0) {
 				org.w3c.dom.Node clazz = getAttribute(impl.item(0), "class");
 				if (clazz != null) {
-					BundleDescription bd = new BundleDescription(clazz.getNodeValue());
-					allBundles.add(bd);
+					BundleDescription bd = new BundleDescription();
+					if (ifNotBlackListed(clazz.getNodeValue(), bundleBlackList, s -> bd.setName(s))) {
+						allBundles.add(bd);
 
-					NodeList service = doc.getElementsByTagName("service");
-					if (service.getLength() > 0) {
-						NodeList services = service.item(0).getChildNodes();
-						for (int i = 0; i < services.getLength(); ++i) {
-							org.w3c.dom.Node provide = getAttribute(services.item(i),"interface");
-							if (provide != null) {
-								bd.addInterface(provide.getNodeValue());
-								allServices.add(provide.getNodeValue());
+						NodeList service = doc.getElementsByTagName("service");
+						if (service.getLength() > 0) {
+							NodeList services = service.item(0).getChildNodes();
+							for (int i = 0; i < services.getLength(); ++i) {
+								org.w3c.dom.Node provide = getAttribute(services.item(i),"interface");
+								if (provide != null) {
+									ifNotBlackListed(provide.getNodeValue(), 
+											identifierBlackList,
+											s -> {
+												bd.addInterface(s);
+												allServices.add(s);
+											});
+								}
 							}
 						}
-					}
 
-					NodeList references = doc.getElementsByTagName("reference");
-					for (int i = 0; i < references.getLength(); ++i) {
-						org.w3c.dom.Node use = getAttribute(references.item(i),"interface");
-						if (use != null) {
-							bd.addReference(use.getNodeValue());
-							allServices.add(use.getNodeValue());							
+						NodeList references = doc.getElementsByTagName("reference");
+						for (int i = 0; i < references.getLength(); ++i) {
+							org.w3c.dom.Node use = getAttribute(references.item(i),"interface");
+							if (use != null) {
+								ifNotBlackListed(use.getNodeValue(),
+										identifierBlackList,
+										s -> {
+											bd.addReference(s);
+											allServices.add(s);
+										});
+							}
 						}
 					}
 				}
@@ -127,7 +159,7 @@ public class ServiceAndBundleStore {
 						message("Reading " + entry.getName() + " ...");
 						examineZip(new ZipInputStream(inStream));
 					}
-					
+
 					if (entry.getName().contains("OSGI-INF") && entry.getName().endsWith(".xml")) {
 						message("  Reading " + entry.getName() + " ...");
 						int len = 0;
@@ -136,7 +168,7 @@ public class ServiceAndBundleStore {
 						while ((len = inStream.read(buffer,offset,buffer.length - offset)) > 0) {
 							offset += len;
 						}
-						
+
 						if (offset < buffer.length) {
 							examineXml(buffer,offset);
 						}
@@ -177,11 +209,25 @@ public class ServiceAndBundleStore {
 	public Set<BundleDescription> getBundles() {
 		return allBundles;
 	}
-	
+
 	/**
 	 * Set verbose-level
 	 */
 	public void setVerbose(boolean verbose) {
 		this.verbose = verbose;
+	}
+
+	/**
+	 * Set blacklist
+	 */
+	public void setBlacklist(List<Pattern> blackList) {
+		this.identifierBlackList = blackList;
+	}
+
+	/**
+	 * Set blacklist for bundles
+	 */
+	public void setBundleBlacklist(List<Pattern> bundleBlackList) {
+		this.bundleBlackList = bundleBlackList;
 	}
 }
