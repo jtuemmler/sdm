@@ -1,0 +1,15 @@
+#!/bin/bash
+
+scriptdir=`dirname $0`
+
+export GRAPHVIZ_DOT=`which dot`
+export plantumlinc="$scriptdir/plantuml"
+
+if [ -n "$GRAPHVIZ_DOT" ]
+then
+	java -jar "$scriptdir/sdm.jar" $@
+else
+	echo "dot-tool not found. Please install graphviz or"
+	echo "set the path correctly."
+fi
+
