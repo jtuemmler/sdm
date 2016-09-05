@@ -2,6 +2,8 @@ package de.rbs.sdm;
 
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.util.Arrays;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.regex.Pattern;
@@ -14,9 +16,11 @@ public class Main {
 		List<String> inputFiles = new LinkedList<>();
 		List<Pattern> bundleBlackList = new LinkedList<>();
 		List<Pattern> blackList = new LinkedList<>();
-		String outputFile = "out.svg";
+		String outputFile = "";
 		boolean writeSource = false;
 		boolean verbose = false;
+		boolean lollipopStyle = false;
+		boolean draft = false;
 
 		blackList.add(Pattern.compile("java.lang.Object"));
 
@@ -25,7 +29,7 @@ public class Main {
 				if (args[i].equals("-o")) {
 					outputFile = args[++i];
 				}
-				else if (args[i].equals("-p")) {
+				else if (args[i].equals("-s")) {
 					writeSource = true;
 				}
 				else if (args[i].equals("-v")) {
@@ -37,9 +41,20 @@ public class Main {
 				else if (args[i].equals("-E")) {
 					blackList.add(Pattern.compile(args[++i]));
 					bundleBlackList.add(Pattern.compile(args[i]));
-				}				
+				}		
+				else if (args[i].equals("-l")) {
+					lollipopStyle = true;
+				}
+				else if (args[i].equals("-d")) {
+					draft = true;
+				}
 				else {
-					inputFiles.add(args[i]);
+					if (!args[i].startsWith("-")) {
+						inputFiles.add(args[i]);
+					}
+					else {
+						System.out.println("Ignored parameter: " + args[i]);
+					}
 				}
 			}
 
@@ -52,15 +67,28 @@ public class Main {
 				sab.examineZip(file);
 			}
 
+			PlantUmlRenderer renderer = new PlantUmlRenderer();
+			renderer.setDraft(draft);
+			renderer.setLollipopStyle(lollipopStyle);
+			
+			byte[] result;
+			
 			if (writeSource) {
-				System.out.println(PlantUmlRenderer.getPlantUmlDiagram(sab));
+				result = renderer.getPlantUmlDiagram(sab).getBytes(StandardCharsets.UTF_8);
+			}
+			else {
+				result = renderer.renderServiceDiagram(sab,FileFormat.SVG);
+			}
+			
+			if (outputFile.isEmpty()) {
+				System.out.println(new String(result,StandardCharsets.UTF_8));
 			}
 			else {
 				if (verbose) {
 					System.out.println("Writing diagram " + outputFile + " ...");
 				}
 				try (FileOutputStream os = new FileOutputStream(outputFile)) {
-					os.write(PlantUmlRenderer.renderServiceDiagram(sab,FileFormat.SVG));
+					os.write(result);
 				}
 			}
 		}
@@ -70,10 +98,12 @@ public class Main {
 
 			System.out.println();
 			System.out.println("Options are:");
-			System.out.println("-p          Don't render diagram, instead print the PlantUML source-code");
-			System.out.println("            for the diagram");
+			System.out.println("-o [file]   Write to given file instead of stdout");
+			System.out.println("-s          Don't render diagram, instead generate PlantUML source-code");
 			System.out.println("-e [regex]  Exclude bundle from diagram (may be defined more than once)");
 			System.out.println("-E [regex]  Exclude identifier from diagram (may be defined more than once)");
+			System.out.println("-l          Use 'lollipop' style");
+			System.out.println("-d          Use 'draft' style");
 			System.out.println("-v          Verbose output");
 		}
 	}

@@ -14,6 +14,8 @@ import net.sourceforge.plantuml.SourceStringReader;
  *
  */
 public class PlantUmlRenderer {
+	private boolean lollipopStyle = false;
+	private boolean draft = false;
 	
 	/**
 	 * Render a service-diagram an return a graphical representation of the specified format.
@@ -22,7 +24,7 @@ public class PlantUmlRenderer {
 	 * @param fileFormat	Format of the diagram (eg. FileFormat.SVG)
 	 * @return A byte-array containing the rendered diagram.
 	 */
-	public static byte[] renderServiceDiagram(ServiceAndBundleStore sab, FileFormat fileFormat) {
+	public byte[] renderServiceDiagram(ServiceAndBundleStore sab, FileFormat fileFormat) {
 		byte[] result = new byte[0];		
 		
 		String source = "@startuml\n" +
@@ -48,18 +50,44 @@ public class PlantUmlRenderer {
 	 * @param sab			ServiceAndBundleStore that contains a list of all services and bundles
 	 * @return Service-diagram as PlantUML commands
 	 */
-	public static String getPlantUmlDiagram(ServiceAndBundleStore sab) {
+	public String getPlantUmlDiagram(ServiceAndBundleStore sab) {
 		StringBuilder sb = new StringBuilder();
 		
-		sb.append("!include %plantumlinc%/osgi.iuml\n");		
+		if (lollipopStyle) {
+			sb.append("!define LOLLY_STYLE 1\n");
+		}
+		
+		sb.append("!include %plantumlinc%/osgi.iuml\n\n");
+		
+		if (draft) {
+			sb.append("draft\n");
+		}
+		
 		sab.getServices().forEach((s) -> sb.append("service(" + s + ")\n"));
 		
 		for (BundleDescription bd : sab.getBundles()) {
-			sb.append("bundle(" + bd.getName() + ")\n");
+			sb.append("\nbundle(" + bd.getName() + ")\n");
 			bd.getInterfaces().forEach((s) -> sb.append("impl(" + bd.getName() + "," + s + ")\n"));
 			bd.getReferences().forEach((s) -> sb.append("use(" + bd.getName() + "," + s + ")\n"));
 		}
 
 		return sb.toString();
 	}
+
+	/**
+	 * Defines whether to draw interfaces in "lollipop" style
+	 * @param lollipopStyle 	True, to enable style
+	 */
+	public void setLollipopStyle(boolean lollipopStyle) {
+		this.lollipopStyle = lollipopStyle;
+	}
+
+	/**
+	 * Defines whether to draw diagrams in "draft" style
+	 * @param draft				True, to enable style
+	 */
+	public void setDraft(boolean draft) {
+		this.draft = draft;
+	}
+	
 }
