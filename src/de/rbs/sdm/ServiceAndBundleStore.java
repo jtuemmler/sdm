@@ -23,6 +23,8 @@ import org.w3c.dom.Document;
 import org.w3c.dom.NodeList;
 import org.xml.sax.SAXException;
 
+import de.rbs.sdm.BundleDescription.Reference;
+
 /**
  * Class to scan jars and extract information about services and bundles
  * 
@@ -48,11 +50,14 @@ public class ServiceAndBundleStore {
 	/**
 	 * @return Attribute with the given name
 	 */
-	private org.w3c.dom.Node getAttribute(org.w3c.dom.Node node, String attribute) {
+	private String getAttributeValue(org.w3c.dom.Node node, String attribute) {
 		if (node.hasAttributes()) {
-			return node.getAttributes().getNamedItem(attribute);
+			org.w3c.dom.Node attributeNode = node.getAttributes().getNamedItem(attribute);
+			if (attributeNode != null) {
+				return attributeNode.getNodeValue();				
+			}
 		}
-		return null;
+		return "";
 	}
 
 	/**
@@ -85,19 +90,19 @@ public class ServiceAndBundleStore {
 
 			NodeList impl = doc.getElementsByTagName("implementation");
 			if (impl.getLength() > 0) {
-				org.w3c.dom.Node clazz = getAttribute(impl.item(0), "class");
-				if (clazz != null) {
+				String clazz = getAttributeValue(impl.item(0), "class");
+				if (!clazz.isEmpty()) {
 					BundleDescription bd = new BundleDescription();
-					if (ifNotBlackListed(clazz.getNodeValue(), bundleBlackList, s -> bd.setName(s))) {
+					if (ifNotBlackListed(clazz, bundleBlackList, s -> bd.setName(s))) {
 						allBundles.add(bd);
 
 						NodeList service = doc.getElementsByTagName("service");
 						if (service.getLength() > 0) {
 							NodeList services = service.item(0).getChildNodes();
 							for (int i = 0; i < services.getLength(); ++i) {
-								org.w3c.dom.Node provide = getAttribute(services.item(i),"interface");
-								if (provide != null) {
-									ifNotBlackListed(provide.getNodeValue(), 
+								String provide = getAttributeValue(services.item(i),"interface");
+								if (!provide.isEmpty()) {
+									ifNotBlackListed(provide, 
 											identifierBlackList,
 											s -> {
 												bd.addInterface(s);
@@ -109,12 +114,21 @@ public class ServiceAndBundleStore {
 
 						NodeList references = doc.getElementsByTagName("reference");
 						for (int i = 0; i < references.getLength(); ++i) {
-							org.w3c.dom.Node use = getAttribute(references.item(i),"interface");
-							if (use != null) {
-								ifNotBlackListed(use.getNodeValue(),
+							final String use = getAttributeValue(references.item(i),"interface");
+							final String cardinality = getAttributeValue(references.item(i), "cardinality");
+							final String policy = getAttributeValue(references.item(i), "policy");
+							
+							if (!use.isEmpty()) {
+								ifNotBlackListed(use,
 										identifierBlackList,
 										s -> {
-											bd.addReference(s);
+											Reference reference = new Reference();
+											reference.name = s;
+											if (!cardinality.equals("1..1")) {
+												reference.cardinality = cardinality;												
+											}
+											reference.policy = policy;
+											bd.addReference(reference);
 											allServices.add(s);
 										});
 							}

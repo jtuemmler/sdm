@@ -78,12 +78,15 @@ skinparam sequence {
 !define storage(a) database a as a
 
 ' These are overloads for the associations defined below, 
-' that accept a direction as third parameter. 
+' that accept a direction as third parameter and 
+' a cardinality as fourth. 
 ' Direction may be: up, down, left, right
 !ifdef LOLLY_STYLE
+!define use(a,b,d,c) a -d-( "c" b
 !define use(a,b,d) a -d-( b
 !define impl(a,b,d) a -d- b
 !else
+!define use(a,b,d,c) a .d.> "c" b : <<use>>
 !define use(a,b,d) a .d.> b : <<use>>
 !define impl(a,b,d) a .d.|> b
 !endif
@@ -92,6 +95,9 @@ skinparam sequence {
 
 ' Adds an "use" association to the diagram (a uses b); usage: use(consumer, provider)
 !define use(a,b) use(a,b,down)
+
+' Adds an "use" association with cardinality to the diagram (a uses b); usage: use(consumer, provider, cardinality)
+!define useMulti(a,b,c) use(a,b,down,c)
 
 ' Adds an "useLib" association to the diagram (a uses b); usage: useLib(consumer, provider)
 !define useLib(a,b) useLib(a,b,down)
