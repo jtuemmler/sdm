@@ -3,7 +3,6 @@ package de.rbs.sdm;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
-import java.util.Arrays;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.regex.Pattern;
@@ -98,13 +97,21 @@ public class Main {
 
 			System.out.println();
 			System.out.println("Options are:");
-			System.out.println("-o [file]   Write to given file instead of stdout");
-			System.out.println("-s          Don't render diagram, instead generate PlantUML source-code");
-			System.out.println("-e [regex]  Exclude bundle from diagram (may be defined more than once)");
-			System.out.println("-E [regex]  Exclude identifier from diagram (may be defined more than once)");
-			System.out.println("-l          Use 'lollipop' style");
-			System.out.println("-d          Use 'draft' style");
-			System.out.println("-v          Verbose output");
+			System.out.println("-o [file]      Write to given file instead of stdout");
+			System.out.println("-s             Don't render diagram, instead generate PlantUML source-code");
+			System.out.println("-e [regex]     Exclude bundle from diagram (may be defined more than once)");
+			System.out.println("-E [regex]     Exclude identifier from diagram (may be defined more than once)");
+			System.out.println("-l             Use 'lollipop' style");
+			System.out.println("-d             Use 'draft' style");
+			System.out.println("-v             Verbose output");
+			
+			System.out.println();
+			System.out.println("Environment variables:");
+			System.out.println("plantumlinc    Use this variable to point to the directory containing osgi.iuml.");
+			System.out.println("  Example: set plantumlinc=d:\\tools\\sdm\\plantuml");
+			System.out.println();
+			System.out.println("GRAPHVIZ_DOT   Use this variable to point to the dot-tool of graphviz.");
+			System.out.println("  Example: set GRAPHVIZ_DOT=c:\\Program Files (x86)\\Graphviz2.38\\bin\\dot.exe");
 		}
 	}
 }
