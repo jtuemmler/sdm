@@ -68,7 +68,15 @@ public class PlantUmlRenderer {
 		for (BundleDescription bd : sab.getBundles()) {
 			sb.append("\nbundle(" + bd.getName() + ")\n");
 			bd.getInterfaces().forEach((s) -> sb.append("impl(" + bd.getName() + "," + s + ")\n"));
-			bd.getReferences().forEach((s) -> sb.append("use(" + bd.getName() + "," + s + ")\n"));
+			bd.getReferences().forEach(
+					(s) -> {
+						if (s.cardinality.isEmpty()) {
+							sb.append("use(" + bd.getName() + "," + s.name + ")\n");
+						}
+						else {
+							sb.append("useMulti(" + bd.getName() + "," + s.name + "," + s.cardinality + ")\n");							
+						}
+					});
 		}
 
 		return sb.toString();
