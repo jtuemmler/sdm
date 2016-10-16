@@ -2,6 +2,7 @@ package de.rbs.sdm;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.util.Map.Entry;
 
 import net.sourceforge.plantuml.FileFormat;
 import net.sourceforge.plantuml.FileFormatOption;
@@ -65,16 +66,16 @@ public class PlantUmlRenderer {
 		
 		sab.getServices().forEach((s) -> sb.append("service(" + s + ")\n"));
 		
-		for (BundleDescription bd : sab.getBundles()) {
-			sb.append("\nbundle(" + bd.getName() + ")\n");
-			bd.getInterfaces().forEach((s) -> sb.append("impl(" + bd.getName() + "," + s + ")\n"));
-			bd.getReferences().forEach(
+		for (Entry<String, BundleDescription> bundle : sab.getBundles().entrySet()) {
+			sb.append("\nbundle(" + bundle.getKey() + ")\n");
+			bundle.getValue().getInterfaces().forEach((s) -> sb.append("impl(" + bundle.getKey() + "," + s + ")\n"));
+			bundle.getValue().getReferences().forEach(
 					(s) -> {
 						if (s.cardinality.isEmpty()) {
-							sb.append("use(" + bd.getName() + "," + s.name + ")\n");
+							sb.append("use(" + bundle.getKey() + "," + s.name + ")\n");
 						}
 						else {
-							sb.append("useMulti(" + bd.getName() + "," + s.name + "," + s.cardinality + ")\n");							
+							sb.append("useMulti(" + bundle.getKey() + "," + s.name + "," + s.cardinality + ")\n");							
 						}
 					});
 		}

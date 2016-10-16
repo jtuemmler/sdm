@@ -3,65 +3,34 @@ package de.rbs.sdm;
 import java.util.HashSet;
 import java.util.Set;
 
-/**
- * Class to store information about a bundle.
- * 
- * @author tuemmler
- *
- */
+import de.rbs.sdm.ComponentDescription.Reference;
+
 public class BundleDescription {
-	public static class Reference {
-		public String name = "";
-		public String cardinality = "";
-		public String policy = "";
-
-		@Override
-		public int hashCode() {
-			return name.hashCode();
-		}
-
-		@Override
-		public boolean equals(Object obj) {
-			return name.equals(obj);
-		}
-
-		@Override
-		public String toString() {
-			return "Reference [name=" + name + "]";
-		}	
+	Set<ComponentDescription> components = new HashSet<>();
+	
+	public void addComponent(ComponentDescription cd) {
+		components.add(cd);
 	}
 	
-	private String name = "";
-	private final Set<String> intf = new HashSet<>();
-	private final Set<Reference> refs = new HashSet<>();
-	
-	public void setName(String name) {
-		this.name = name;
+	public Set<ComponentDescription> getComponents() {
+		return components;
 	}
 	
-	public void addInterface(String name) {
-		intf.add(name);
-	}
-	
-	public void addReference(Reference reference) {
-		refs.add(reference);
-	}
-	
-	public String getName() {
-		return name;
-	}
-
 	public Set<String> getInterfaces() {
-		return intf;
+		Set<String> result = new HashSet<>();
+		
+		components.forEach(component -> result.addAll(component.getInterfaces()));
+		
+		return result;
 	}
 
 	public Set<Reference> getReferences() {
-		return refs;
+		Set<Reference> result = new HashSet<>();
+		
+		components.forEach(component -> result.addAll(component.getReferences()));
+		
+		return result;
 	}
 	
-	@Override
-	public String toString() {
-		return "BundleDescription [name=" + name + ", intf=" + intf + ", refs=" + refs + "]";
-	}
-	
+
 }
