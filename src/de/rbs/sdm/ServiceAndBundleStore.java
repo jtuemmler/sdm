@@ -1,14 +1,17 @@
 package de.rbs.sdm;
 
 import java.io.ByteArrayInputStream;
+import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.function.Consumer;
 import java.util.regex.Pattern;
@@ -23,7 +26,7 @@ import org.w3c.dom.Document;
 import org.w3c.dom.NodeList;
 import org.xml.sax.SAXException;
 
-import de.rbs.sdm.BundleDescription.Reference;
+import de.rbs.sdm.ComponentDescription.Reference;
 
 /**
  * Class to scan jars and extract information about services and bundles
@@ -34,7 +37,7 @@ import de.rbs.sdm.BundleDescription.Reference;
 public class ServiceAndBundleStore {
 	private boolean verbose = false;
 	private final Set<String> allServices = new HashSet<>();
-	private final Set<BundleDescription> allBundles = new HashSet<>();
+	private final Map<String, BundleDescription> bundles = new HashMap<>();
 	private List<Pattern> identifierBlackList = new ArrayList<>();
 	private List<Pattern> bundleBlackList = new ArrayList<>();
 
@@ -45,6 +48,15 @@ public class ServiceAndBundleStore {
 		if (verbose) {
 			System.out.println(m);
 		}
+	}
+	
+	/**
+	 * Extract filename from path
+	 * @param path	Path to extract filename from
+	 * @return filename
+	 */
+	String getFilename(String path) {
+		return (new File(path).getName()).replace('-', '_').replace(".jar", "");
 	}
 
 	/**
@@ -78,11 +90,13 @@ public class ServiceAndBundleStore {
 
 	/**
 	 * Read XML description and extract information about a bundle
-	 * @param buffer	Buffer holding XML description
-	 * @param length	Bytes used in buffer
+	 * @param bundleName	Name of the bundle (jar)
+	 * @param buffer		Buffer holding XML description
+	 * @param length		Bytes used in buffer
 	 */
-	private void examineXml(byte[] buffer, int length) {
+	private void examineXml(String bundleName, byte[] buffer, int length) {
 		DocumentBuilderFactory dbFactory = DocumentBuilderFactory.newInstance();
+		
 		try {
 			DocumentBuilder dBuilder = dbFactory.newDocumentBuilder();
 			Document doc = dBuilder.parse(new ByteArrayInputStream(buffer,0,length));
@@ -92,9 +106,16 @@ public class ServiceAndBundleStore {
 			if (impl.getLength() > 0) {
 				String clazz = getAttributeValue(impl.item(0), "class");
 				if (!clazz.isEmpty()) {
-					BundleDescription bd = new BundleDescription();
-					if (ifNotBlackListed(clazz, bundleBlackList, s -> bd.setName(s))) {
-						allBundles.add(bd);
+					ComponentDescription cd = new ComponentDescription();
+					ifNotBlackListed(clazz, bundleBlackList, name -> 
+					{
+						cd.setName(name);
+						BundleDescription bundleDescription = bundles.get(bundleName);
+						if (bundleDescription == null) {
+							bundleDescription = new BundleDescription();
+							bundles.put(bundleName, bundleDescription);
+						}
+						bundleDescription.addComponent(cd);
 
 						NodeList service = doc.getElementsByTagName("service");
 						if (service.getLength() > 0) {
@@ -104,9 +125,9 @@ public class ServiceAndBundleStore {
 								if (!provide.isEmpty()) {
 									ifNotBlackListed(provide, 
 											identifierBlackList,
-											s -> {
-												bd.addInterface(s);
-												allServices.add(s);
+											identifier -> {
+												cd.addInterface(identifier);
+												allServices.add(identifier);
 											});
 								}
 							}
@@ -121,19 +142,19 @@ public class ServiceAndBundleStore {
 							if (!use.isEmpty()) {
 								ifNotBlackListed(use,
 										identifierBlackList,
-										s -> {
+										identifier -> {
 											Reference reference = new Reference();
-											reference.name = s;
+											reference.name = identifier;
 											if (!cardinality.equals("1..1")) {
 												reference.cardinality = cardinality;												
 											}
 											reference.policy = policy;
-											bd.addReference(reference);
-											allServices.add(s);
+											cd.addReference(reference);
+											allServices.add(identifier);
 										});
 							}
 						}
-					}
+					});
 				}
 			}
 
@@ -155,14 +176,15 @@ public class ServiceAndBundleStore {
 	}
 
 	/**
-	 * Scan a ZIP stream for XML descriptions.
+	 * Scan a compressed JAR stream for XML descriptions.
 	 * Recursively scans jars that are found in the stream.
 	 * 
 	 * Note: may be called more than once to scan a list of files.
 	 * 
+	 * @param jarName	Name of the file
 	 * @param inStream	Compressed stream
 	 */
-	public void examineZip(ZipInputStream inStream) {
+	public void examineJar(String jarName, ZipInputStream inStream) {
 		try {
 			ZipEntry entry;
 
@@ -171,7 +193,7 @@ public class ServiceAndBundleStore {
 					//System.out.println(entry.getName());
 					if (entry.getName().endsWith(".jar")) {
 						message("Reading " + entry.getName() + " ...");
-						examineZip(new ZipInputStream(inStream));
+						examineJar(entry.getName(), new ZipInputStream(inStream));
 					}
 
 					if (entry.getName().contains("OSGI-INF") && entry.getName().endsWith(".xml")) {
@@ -184,7 +206,7 @@ public class ServiceAndBundleStore {
 						}
 
 						if (offset < buffer.length) {
-							examineXml(buffer,offset);
+							examineXml(getFilename(jarName), buffer,offset);
 						}
 						else {
 							System.err.println("Buffer too small!");
@@ -198,13 +220,13 @@ public class ServiceAndBundleStore {
 	}
 
 	/**
-	 * Scan a ZIP file for XML descriptions.
-	 * @param fileName	Name of the file
+	 * Scan a JAR file for XML descriptions.
+	 * @param jarName	Name of the file
 	 */
-	public void examineZip(String fileName) {
+	public void examineJar(String jarName) {
 		try {
-			message("Reading " + fileName + " ...");
-			examineZip(new ZipInputStream(new FileInputStream(fileName)));
+			message("Reading " + jarName + " ...");
+			examineJar(jarName, new ZipInputStream(new FileInputStream(jarName)));
 		} catch (FileNotFoundException e) {
 			e.printStackTrace();
 		}
@@ -220,8 +242,8 @@ public class ServiceAndBundleStore {
 	/**
 	 * @return All found bundles
 	 */
-	public Set<BundleDescription> getBundles() {
-		return allBundles;
+	public Map<String, BundleDescription> getBundles() {
+		return bundles;
 	}
 
 	/**

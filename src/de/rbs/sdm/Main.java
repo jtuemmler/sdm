@@ -63,7 +63,7 @@ public class Main {
 			sab.setBlacklist(blackList);
 
 			for (String file : inputFiles) {
-				sab.examineZip(file);
+				sab.examineJar(file);
 			}
 
 			PlantUmlRenderer renderer = new PlantUmlRenderer();
