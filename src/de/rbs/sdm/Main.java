@@ -92,6 +92,9 @@ public class Main {
 			}
 		}
 		else {
+			System.out.println("sdm Version 1.01");
+			System.out.println();
+			
 			System.out.println("Usage  : sdm [options] -o [output] [jar]+");
 			System.out.println("Example: sdm -e \".*foo.*\" -o out.svg bar.jar baz.jar");
 
