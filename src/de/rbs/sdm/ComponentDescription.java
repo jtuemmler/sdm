@@ -14,21 +14,43 @@ public class ComponentDescription {
 		public String name = "";
 		public String cardinality = "";
 		public String policy = "";
+		
+		@Override
+		public String toString() {
+			return "Reference [name=" + name + ", cardinality=" + cardinality + "]";
+		}
 
 		@Override
 		public int hashCode() {
-			return name.hashCode();
+			final int prime = 31;
+			int result = 1;
+			result = prime * result + ((cardinality == null) ? 0 : cardinality.hashCode());
+			result = prime * result + ((name == null) ? 0 : name.hashCode());
+			return result;
 		}
-
+		
 		@Override
 		public boolean equals(Object obj) {
-			return name.equals(obj);
+			if (this == obj)
+				return true;
+			if (obj == null)
+				return false;
+			if (getClass() != obj.getClass())
+				return false;
+			Reference other = (Reference) obj;
+			if (cardinality == null) {
+				if (other.cardinality != null)
+					return false;
+			} else if (!cardinality.equals(other.cardinality))
+				return false;
+			if (name == null) {
+				if (other.name != null)
+					return false;
+			} else if (!name.equals(other.name))
+				return false;
+			return true;
 		}
 
-		@Override
-		public String toString() {
-			return "Reference [name=" + name + "]";
-		}	
 	}
 	
 	private String name = "";

@@ -20,6 +20,7 @@ public class Main {
 		boolean verbose = false;
 		boolean lollipopStyle = false;
 		boolean draft = false;
+		boolean renderBundles = true;
 
 		blackList.add(Pattern.compile("java.lang.Object"));
 
@@ -33,6 +34,9 @@ public class Main {
 				}
 				else if (args[i].equals("-v")) {
 					verbose = true;
+				}
+				else if (args[i].equals("-c")) {
+					renderBundles = false;
 				}
 				else if (args[i].equals("-e")) {
 					bundleBlackList.add(Pattern.compile(args[++i]));
@@ -73,26 +77,31 @@ public class Main {
 			byte[] result;
 			
 			if (writeSource) {
-				result = renderer.getPlantUmlDiagram(sab).getBytes(StandardCharsets.UTF_8);
+				result = renderer.getPlantUmlDiagram(sab, renderBundles).getBytes(StandardCharsets.UTF_8);
 			}
 			else {
-				result = renderer.renderServiceDiagram(sab,FileFormat.SVG);
+				result = renderer.renderServiceDiagram(sab,FileFormat.SVG, renderBundles);
 			}
 			
-			if (outputFile.isEmpty()) {
-				System.out.println(new String(result,StandardCharsets.UTF_8));
+			if (result.length > 0) {
+				if (outputFile.isEmpty()) {
+					System.out.println(new String(result,StandardCharsets.UTF_8));
+				}
+				else {
+					if (verbose) {
+						System.out.println("Writing diagram " + outputFile + " ...");
+					}
+					try (FileOutputStream os = new FileOutputStream(outputFile)) {
+						os.write(result);
+					}
+				}
 			}
 			else {
-				if (verbose) {
-					System.out.println("Writing diagram " + outputFile + " ...");
-				}
-				try (FileOutputStream os = new FileOutputStream(outputFile)) {
-					os.write(result);
-				}
+				System.err.println("Error: Diagram contains no services!");
 			}
 		}
 		else {
-			System.out.println("sdm Version 1.01");
+			System.out.println("sdm Version 1.02");
 			System.out.println();
 			
 			System.out.println("Usage  : sdm [options] -o [output] [jar]+");
@@ -106,6 +115,7 @@ public class Main {
 			System.out.println("-E [regex]     Exclude identifier from diagram (may be defined more than once)");
 			System.out.println("-l             Use 'lollipop' style");
 			System.out.println("-d             Use 'draft' style");
+			System.out.println("-c             Render on component-level (instead of bundle-level)");
 			System.out.println("-v             Verbose output");
 			
 			System.out.println();
