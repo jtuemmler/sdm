@@ -80,10 +80,13 @@ public class ServiceAndBundleStore {
 		for (Pattern pattern : blackList) {
 			if (pattern.matcher(identifier).matches()) {
 				message("  Ignoring: " + identifier);
+				message("  because of: " + pattern.pattern());
 				return false;
 			}
 		}
-		consumer.accept(identifier);
+		if (consumer != null) {
+			consumer.accept(identifier);
+		}
 
 		return true;
 	}
@@ -97,73 +100,75 @@ public class ServiceAndBundleStore {
 	private void examineXml(String bundleName, byte[] buffer, int length) {
 		DocumentBuilderFactory dbFactory = DocumentBuilderFactory.newInstance();
 		
-		try {
-			DocumentBuilder dBuilder = dbFactory.newDocumentBuilder();
-			Document doc = dBuilder.parse(new ByteArrayInputStream(buffer,0,length));
-			doc.getDocumentElement().normalize();
-
-			NodeList impl = doc.getElementsByTagName("implementation");
-			if (impl.getLength() > 0) {
-				String clazz = getAttributeValue(impl.item(0), "class");
-				if (!clazz.isEmpty()) {
-					ComponentDescription cd = new ComponentDescription();
-					ifNotBlackListed(clazz, bundleBlackList, name -> 
-					{
-						cd.setName(name);
-						BundleDescription bundleDescription = bundles.get(bundleName);
-						if (bundleDescription == null) {
-							bundleDescription = new BundleDescription();
-							bundles.put(bundleName, bundleDescription);
-						}
-						bundleDescription.addComponent(cd);
-
-						NodeList service = doc.getElementsByTagName("service");
-						if (service.getLength() > 0) {
-							NodeList services = service.item(0).getChildNodes();
-							for (int i = 0; i < services.getLength(); ++i) {
-								String provide = getAttributeValue(services.item(i),"interface");
-								if (!provide.isEmpty()) {
-									ifNotBlackListed(provide, 
+		if (ifNotBlackListed(bundleName, identifierBlackList, null)) {
+			try {
+				DocumentBuilder dBuilder = dbFactory.newDocumentBuilder();
+				Document doc = dBuilder.parse(new ByteArrayInputStream(buffer,0,length));
+				doc.getDocumentElement().normalize();
+	
+				NodeList impl = doc.getElementsByTagName("implementation");
+				if (impl.getLength() > 0) {
+					String clazz = getAttributeValue(impl.item(0), "class");
+					if (!clazz.isEmpty()) {
+						ComponentDescription cd = new ComponentDescription();
+						ifNotBlackListed(clazz, bundleBlackList, name -> 
+						{
+							cd.setName(name);
+							BundleDescription bundleDescription = bundles.get(bundleName);
+							if (bundleDescription == null) {
+								bundleDescription = new BundleDescription();
+								bundles.put(bundleName, bundleDescription);
+							}
+							bundleDescription.addComponent(cd);
+	
+							NodeList service = doc.getElementsByTagName("service");
+							if (service.getLength() > 0) {
+								NodeList services = service.item(0).getChildNodes();
+								for (int i = 0; i < services.getLength(); ++i) {
+									String provide = getAttributeValue(services.item(i),"interface");
+									if (!provide.isEmpty()) {
+										ifNotBlackListed(provide, 
+												identifierBlackList,
+												identifier -> {
+													cd.addInterface(identifier);
+													allServices.add(identifier);
+												});
+									}
+								}
+							}
+	
+							NodeList references = doc.getElementsByTagName("reference");
+							for (int i = 0; i < references.getLength(); ++i) {
+								final String use = getAttributeValue(references.item(i),"interface");
+								final String cardinality = getAttributeValue(references.item(i), "cardinality");
+								final String policy = getAttributeValue(references.item(i), "policy");
+								
+								if (!use.isEmpty()) {
+									ifNotBlackListed(use,
 											identifierBlackList,
 											identifier -> {
-												cd.addInterface(identifier);
+												Reference reference = new Reference();
+												reference.name = identifier;
+												if (!cardinality.equals("1..1")) {
+													reference.cardinality = cardinality;												
+												}
+												reference.policy = policy;
+												cd.addReference(reference);
 												allServices.add(identifier);
 											});
 								}
 							}
-						}
-
-						NodeList references = doc.getElementsByTagName("reference");
-						for (int i = 0; i < references.getLength(); ++i) {
-							final String use = getAttributeValue(references.item(i),"interface");
-							final String cardinality = getAttributeValue(references.item(i), "cardinality");
-							final String policy = getAttributeValue(references.item(i), "policy");
-							
-							if (!use.isEmpty()) {
-								ifNotBlackListed(use,
-										identifierBlackList,
-										identifier -> {
-											Reference reference = new Reference();
-											reference.name = identifier;
-											if (!cardinality.equals("1..1")) {
-												reference.cardinality = cardinality;												
-											}
-											reference.policy = policy;
-											cd.addReference(reference);
-											allServices.add(identifier);
-										});
-							}
-						}
-					});
+						});
+					}
 				}
+	
+			} catch (ParserConfigurationException|SAXException|UnsupportedEncodingException e) {
+				e.printStackTrace();
+				printXml(buffer,length);
+			} catch (IOException e) {
+				e.printStackTrace();
 			}
-
-		} catch (ParserConfigurationException|SAXException|UnsupportedEncodingException e) {
-			e.printStackTrace();
-			printXml(buffer,length);
-		} catch (IOException e) {
-			e.printStackTrace();
-		}		
+		}
 	}
 
 	/**
