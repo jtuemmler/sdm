@@ -93,6 +93,18 @@ public class ServiceAndBundleStore {
 
 	/**
 	 * Read XML description and extract information about a bundle
+	 * 
+	 * XML-files have the following structure:
+	 * <?xml version="1.0" encoding="UTF-8"?>
+	 * <scr:component xmlns:scr="http://www.osgi.org/xmlns/scr/v1.3.0" name="de.foo.bar.baz.provider" configuration-policy="require" activate="activate" deactivate="deactivate">
+	 *  <implementation class="de.foo.bar.BazImpl"/>
+	 *  <service>
+	 *    <provide interface="de.foo.bar.Baz"/>
+	 *  </service>
+	 *  <reference name="ref1" interface="de.foo.bar.Ref1" field="ref1"/>
+	 *  <reference name="ref2" cardinality="0..n" policy="dynamic" interface="de.foo.bar.Ref2" field="ref2" field-option="update" field-collection-type="service"/>
+	 * </scr:component>
+	 * 
 	 * @param bundleName	Name of the bundle (jar)
 	 * @param buffer		Buffer holding XML description
 	 * @param length		Bytes used in buffer
@@ -253,22 +265,28 @@ public class ServiceAndBundleStore {
 
 	/**
 	 * Set verbose-level
+	 * @return Current instance of ServiceAndBundleStore
 	 */
-	public void setVerbose(boolean verbose) {
+	public ServiceAndBundleStore setVerbose(boolean verbose) {
 		this.verbose = verbose;
+		return this;
 	}
 
 	/**
 	 * Set blacklist
+	 * @return Current instance of ServiceAndBundleStore
 	 */
-	public void setBlacklist(List<Pattern> blackList) {
+	public ServiceAndBundleStore setBlacklist(List<Pattern> blackList) {
 		this.identifierBlackList = blackList;
+		return this;
 	}
 
 	/**
 	 * Set blacklist for bundles
+	 * @return Current instance of ServiceAndBundleStore
 	 */
-	public void setBundleBlacklist(List<Pattern> bundleBlackList) {
+	public ServiceAndBundleStore setBundleBlacklist(List<Pattern> bundleBlackList) {
 		this.bundleBlackList = bundleBlackList;
+		return this;
 	}
 }

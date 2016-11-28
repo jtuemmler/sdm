@@ -15,6 +15,7 @@ public class Main {
 		List<String> inputFiles = new LinkedList<>();
 		List<Pattern> bundleBlackList = new LinkedList<>();
 		List<Pattern> blackList = new LinkedList<>();
+		List<Pattern> serviceIncludeList = new LinkedList<>();
 		String outputFile = "";
 		boolean writeSource = false;
 		boolean verbose = false;
@@ -37,6 +38,9 @@ public class Main {
 				}
 				else if (args[i].equals("-c")) {
 					renderBundles = false;
+				}
+				else if (args[i].equals("-i")) {
+					serviceIncludeList.add(Pattern.compile(args[++i]));
 				}
 				else if (args[i].equals("-e")) {
 					bundleBlackList.add(Pattern.compile(args[++i]));
@@ -61,18 +65,19 @@ public class Main {
 				}
 			}
 
-			ServiceAndBundleStore sab = new ServiceAndBundleStore();
-			sab.setVerbose(verbose);
-			sab.setBundleBlacklist(bundleBlackList);
-			sab.setBlacklist(blackList);
+			ServiceAndBundleStore sab = new ServiceAndBundleStore()
+					.setVerbose(verbose)
+					.setBundleBlacklist(bundleBlackList)
+					.setBlacklist(blackList);
 
 			for (String file : inputFiles) {
 				sab.examineJar(file);
 			}
 
-			PlantUmlRenderer renderer = new PlantUmlRenderer();
-			renderer.setDraft(draft);
-			renderer.setLollipopStyle(lollipopStyle);
+			PlantUmlRenderer renderer = new PlantUmlRenderer()
+					.setDraft(draft)
+					.setLollipopStyle(lollipopStyle)
+					.setServiceIncludeList(serviceIncludeList);
 			
 			byte[] result;
 			
