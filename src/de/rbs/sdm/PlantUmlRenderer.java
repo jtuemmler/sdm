@@ -55,26 +55,6 @@ public class PlantUmlRenderer {
 	}
 	
 	/**
-	 * Add text to the stringbuilder, if the identifier is in include-list
-	 * @param identifier	Identifier to match
-	 * @param sb			StringBuilder to add text
-	 * @param text			Text to add if identifier matches
-	 */
-    private void appendConditional(String identifier, StringBuilder sb, String text) {
-    	if (serviceIncludeList.size() > 0) {
-			for (Pattern pattern : serviceIncludeList) {
-				if (pattern.matcher(identifier).matches()) {
-			    	sb.append(text);
-					return;
-				}
-			}
-    	}
-    	else {
-	    	sb.append(text);    		
-    	}
-    }
-    
-	/**
 	 * Render a service-diagram to PlantUML commands.
 	 * 
 	 * @param sab			ServiceAndBundleStore that contains a list of all services and bundles
@@ -96,19 +76,19 @@ public class PlantUmlRenderer {
 				sb.append("draft\n");
 			}
 
-			sab.getServices().forEach((s) -> appendConditional(s,sb,"service(" + s + ")\n"));
+			sab.getServices().forEach((s) -> sb.append("service(" + s + ")\n"));
 
 			if (renderBundles) {
 				for (Entry<String, BundleDescription> bundle : sab.getBundles().entrySet()) {
 					StringBuilder bsb = new StringBuilder();
-					bundle.getValue().getInterfaces().forEach((s) -> appendConditional(s,bsb,"impl(" + bundle.getKey() + "," + s + ")\n"));
+					bundle.getValue().getInterfaces().forEach((s) -> bsb.append("impl(" + bundle.getKey() + "," + s + ")\n"));
 					bundle.getValue().getReferences().forEach(
 							(s) -> {
 								if (s.cardinality.isEmpty()) {
-									appendConditional(s.name,bsb,"use(" + bundle.getKey() + "," + s.name + ")\n");
+									bsb.append("use(" + bundle.getKey() + "," + s.name + ")\n");
 								}
 								else {
-									appendConditional(s.name,bsb,"useMulti(" + bundle.getKey() + "," + s.name + "," + s.cardinality + ")\n");							
+									bsb.append("useMulti(" + bundle.getKey() + "," + s.name + "," + s.cardinality + ")\n");							
 								}
 							});
 					if (bsb.length() > 0) {
@@ -121,14 +101,14 @@ public class PlantUmlRenderer {
 				for (BundleDescription bundleDescription : sab.getBundles().values()) {
 					for (ComponentDescription componentDescription : bundleDescription.components) {
 						StringBuilder csb = new StringBuilder();
-						componentDescription.getInterfaces().forEach((s) -> appendConditional(s,csb,"impl(" + componentDescription.getName() + "," + s + ")\n"));
+						componentDescription.getInterfaces().forEach((s) -> csb.append("impl(" + componentDescription.getName() + "," + s + ")\n"));
 						componentDescription.getReferences().forEach(
 								(s) -> {
 									if (s.cardinality.isEmpty()) {
-										appendConditional(s.name,csb,"use(" + componentDescription.getName() + "," + s.name + ")\n");
+										csb.append("use(" + componentDescription.getName() + "," + s.name + ")\n");
 									}
 									else {
-										appendConditional(s.name,csb,"useMulti(" + componentDescription.getName() + "," + s.name + "," + s.cardinality + ")\n");							
+										csb.append("useMulti(" + componentDescription.getName() + "," + s.name + "," + s.cardinality + ")\n");							
 									}
 								});
 						if (csb.length() > 0) {

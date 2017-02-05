@@ -39,7 +39,10 @@ public class ServiceAndBundleStore {
 	private final Set<String> allServices = new HashSet<>();
 	private final Map<String, BundleDescription> bundles = new HashMap<>();
 	private List<Pattern> identifierBlackList = new ArrayList<>();
-	private List<Pattern> bundleBlackList = new ArrayList<>();
+	private List<Pattern> componentBlackList = new ArrayList<>();
+	private List<Pattern> bundleWhiteList = new ArrayList<>();
+	private List<Pattern> componentWhiteList = new ArrayList<>();
+	private List<Pattern> serviceWhiteList = new ArrayList<>();
 
 	/**
 	 * Print a message
@@ -76,7 +79,23 @@ public class ServiceAndBundleStore {
 	 * Checks whether the given identifier is blacklisted. If not, call the consumer.
 	 * @return True, if the identifier was consumed
 	 */
-	private boolean ifNotBlackListed(String identifier, List<Pattern> blackList, Consumer<String> consumer) {
+	private boolean ifKeepIdentifier(String identifier, List<Pattern> blackList, List<Pattern> whiteList, Consumer<String> consumer) {
+		if (whiteList != null) {
+			if (whiteList.size() > 0) {
+				boolean found = false;
+				for (Pattern pattern : whiteList) {
+					if (pattern.matcher(identifier).matches()) {
+						found = true;
+						break;
+					}
+				}
+				if (!found) {
+					message("  Ignoring: " + identifier);
+					message("  because it is not in white-list.");
+					return false;					
+				}
+			}
+		}
 		for (Pattern pattern : blackList) {
 			if (pattern.matcher(identifier).matches()) {
 				message("  Ignoring: " + identifier);
@@ -112,7 +131,7 @@ public class ServiceAndBundleStore {
 	private void examineXml(String bundleName, byte[] buffer, int length) {
 		DocumentBuilderFactory dbFactory = DocumentBuilderFactory.newInstance();
 		
-		if (ifNotBlackListed(bundleName, identifierBlackList, null)) {
+		if (ifKeepIdentifier(bundleName, identifierBlackList, bundleWhiteList, null)) {
 			try {
 				DocumentBuilder dBuilder = dbFactory.newDocumentBuilder();
 				Document doc = dBuilder.parse(new ByteArrayInputStream(buffer,0,length));
@@ -120,10 +139,10 @@ public class ServiceAndBundleStore {
 	
 				NodeList impl = doc.getElementsByTagName("implementation");
 				if (impl.getLength() > 0) {
-					String clazz = getAttributeValue(impl.item(0), "class");
-					if (!clazz.isEmpty()) {
+					String componentName = getAttributeValue(impl.item(0), "class");
+					if (!componentName.isEmpty()) {
 						ComponentDescription cd = new ComponentDescription();
-						ifNotBlackListed(clazz, bundleBlackList, name -> 
+						ifKeepIdentifier(componentName, componentBlackList, componentWhiteList, name -> 
 						{
 							cd.setName(name);
 							BundleDescription bundleDescription = bundles.get(bundleName);
@@ -137,10 +156,11 @@ public class ServiceAndBundleStore {
 							if (service.getLength() > 0) {
 								NodeList services = service.item(0).getChildNodes();
 								for (int i = 0; i < services.getLength(); ++i) {
-									String provide = getAttributeValue(services.item(i),"interface");
-									if (!provide.isEmpty()) {
-										ifNotBlackListed(provide, 
+									String implementedInterface = getAttributeValue(services.item(i),"interface");
+									if (!implementedInterface.isEmpty()) {
+										ifKeepIdentifier(implementedInterface, 
 												identifierBlackList,
+												serviceWhiteList,
 												identifier -> {
 													cd.addInterface(identifier);
 													allServices.add(identifier);
@@ -156,8 +176,9 @@ public class ServiceAndBundleStore {
 								final String policy = getAttributeValue(references.item(i), "policy");
 								
 								if (!use.isEmpty()) {
-									ifNotBlackListed(use,
+									ifKeepIdentifier(use,
 											identifierBlackList,
+											serviceWhiteList,
 											identifier -> {
 												Reference reference = new Reference();
 												reference.name = identifier;
@@ -282,11 +303,39 @@ public class ServiceAndBundleStore {
 	}
 
 	/**
-	 * Set blacklist for bundles
+	 * Set blacklist for components
 	 * @return Current instance of ServiceAndBundleStore
 	 */
-	public ServiceAndBundleStore setBundleBlacklist(List<Pattern> bundleBlackList) {
-		this.bundleBlackList = bundleBlackList;
+	public ServiceAndBundleStore setComponentBlacklist(List<Pattern> bundleBlackList) {
+		this.componentBlackList = bundleBlackList;
 		return this;
 	}
+
+	/**
+	 * Set white-list for bundles
+	 * @return Current instance of ServiceAndBundleStore
+	 */
+	public ServiceAndBundleStore setBundleWhitelist(List<Pattern> bundleWhiteList) {
+		this.bundleWhiteList = bundleWhiteList;
+		return this;
+	}
+
+	/**
+	 * Set white-list for components
+	 * @return Current instance of ServiceAndBundleStore
+	 */
+	public ServiceAndBundleStore setComponentWhitelist(List<Pattern> componentWhiteList) {
+		this.componentWhiteList = componentWhiteList;
+		return this;
+	}
+
+	/**
+	 * Set white-list for services
+	 * @return Current instance of ServiceAndBundleStore
+	 */
+	public ServiceAndBundleStore setServiceWhitelist(List<Pattern> serviceWhiteList) {
+		this.serviceWhiteList = serviceWhiteList;
+		return this;
+	}
+	
 }

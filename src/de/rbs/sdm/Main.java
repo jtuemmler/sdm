@@ -17,9 +17,11 @@ public class Main {
 
 	public static void main(String[] args) throws IOException {
 		List<String> inputFiles = new LinkedList<>();
-		List<Pattern> bundleBlackList = new LinkedList<>();
 		List<Pattern> blackList = new LinkedList<>();
-		List<Pattern> serviceIncludeList = new LinkedList<>();
+		List<Pattern> componentBlackList = new LinkedList<>();
+		List<Pattern> bundleWhiteList = new LinkedList<>();
+		List<Pattern> componentWhiteList = new LinkedList<>();
+		List<Pattern> serviceWhiteList = new LinkedList<>();
 		String outputFile = "";
 		boolean writeSource = false;
 		boolean verbose = false;
@@ -43,19 +45,25 @@ public class Main {
 				else if (args[i].equals("-c")) {
 					renderBundles = false;
 				}
-				else if (args[i].equals("-i")) {
-					serviceIncludeList.add(Pattern.compile(args[++i]));
-				}
-				else if (args[i].equals("-if")) {
-				   extendIncludeList(serviceIncludeList, args[++i]);
-				}
 				else if (args[i].equals("-e")) {
-					bundleBlackList.add(Pattern.compile(args[++i]));
-				}
-				else if (args[i].equals("-E")) {
 					blackList.add(Pattern.compile(args[++i]));
-					bundleBlackList.add(Pattern.compile(args[i]));
+					componentBlackList.add(Pattern.compile(args[i]));
 				}		
+				else if (args[i].equals("-ec")) {
+					componentBlackList.add(Pattern.compile(args[++i]));
+				}
+				else if (args[i].equals("-ib")) {
+					bundleWhiteList.add(Pattern.compile(args[++i]));
+				}
+				else if (args[i].equals("-ic")) {
+					componentWhiteList.add(Pattern.compile(args[++i]));
+				}
+				else if (args[i].equals("-is")) {
+					serviceWhiteList.add(Pattern.compile(args[++i]));
+				}
+				else if (args[i].equals("-isf")) {
+					extendPatternList(serviceWhiteList, "^service\\((.+)\\)", args[++i]);
+				}
 				else if (args[i].equals("-l")) {
 					lollipopStyle = true;
 				}
@@ -74,8 +82,11 @@ public class Main {
 
 			ServiceAndBundleStore sab = new ServiceAndBundleStore()
 					.setVerbose(verbose)
-					.setBundleBlacklist(bundleBlackList)
-					.setBlacklist(blackList);
+					.setBlacklist(blackList)
+					.setComponentBlacklist(componentBlackList)
+					.setBundleWhitelist(bundleWhiteList)
+					.setComponentWhitelist(componentWhiteList)
+					.setServiceWhitelist(serviceWhiteList);
 
 			for (String file : inputFiles) {
 				sab.examineJar(file);
@@ -83,18 +94,18 @@ public class Main {
 
 			PlantUmlRenderer renderer = new PlantUmlRenderer()
 					.setDraft(draft)
-					.setLollipopStyle(lollipopStyle)
-					.setServiceIncludeList(serviceIncludeList);
-			
+					.setLollipopStyle(lollipopStyle);
+					//.setServiceIncludeList(serviceWhiteList);
+
 			byte[] result;
-			
+
 			if (writeSource) {
 				result = renderer.getPlantUmlDiagram(sab, renderBundles).getBytes(StandardCharsets.UTF_8);
 			}
 			else {
 				result = renderer.renderServiceDiagram(sab,FileFormat.SVG, renderBundles);
 			}
-			
+
 			if (result.length > 0) {
 				if (outputFile.isEmpty()) {
 					System.out.println(new String(result,StandardCharsets.UTF_8));
@@ -113,9 +124,9 @@ public class Main {
 			}
 		}
 		else {
-			System.out.println("sdm Version 1.03");
+			System.out.println("sdm Version 1.04");
 			System.out.println();
-			
+
 			System.out.println("Usage  : sdm [options] -o [output] [jar]+");
 			System.out.println("Example: sdm -e \".*foo.*\" -o out.svg bar.jar baz.jar");
 
@@ -123,15 +134,17 @@ public class Main {
 			System.out.println("Options are:");
 			System.out.println("-o [file]      Write to given file instead of stdout");
 			System.out.println("-s             Don't render diagram, instead generate PlantUML source-code");
-			System.out.println("-e [regex]     Exclude bundle from diagram (may be defined more than once)");
-			System.out.println("-E [regex]     Exclude identifier from diagram (may be defined more than once)");
-         System.out.println("-i [regex]     Include service (may be defined more than once)");
-         System.out.println("-if [file]     Include service (may be defined more than once)");
+			System.out.println("-e [regex]     Exclude identifier from diagram (may be defined more than once)");
+			System.out.println("-eb [regex]    Exclude bundle from diagram (may be defined more than once)");
+			System.out.println("-ib [regex]    Include bundle (may be defined more than once)");
+			System.out.println("-ic [regex]    Include component (may be defined more than once)");
+			System.out.println("-is [regex]    Include service (may be defined more than once)");
+			System.out.println("-isf [file]    Include service (may be defined more than once)");
 			System.out.println("-l             Use 'lollipop' style");
 			System.out.println("-d             Use 'draft' style");
 			System.out.println("-c             Render on component-level (instead of bundle-level)");
 			System.out.println("-v             Verbose output");
-			
+
 			System.out.println();
 			System.out.println("Environment variables:");
 			System.out.println("plantumlinc    Use this variable to point to the directory containing osgi.iuml.");
@@ -142,18 +155,18 @@ public class Main {
 		}
 	}
 
-   private static void extendIncludeList(List<Pattern> serviceIncludeList, String fileName)  {
-      Pattern p = Pattern.compile("^service\\((.+)\\)");
-      
-      try (Stream<String> stream = Files.lines(Paths.get(fileName))) {
-         stream.forEach(s -> {
-            Matcher m = p.matcher(s);
-            if (m.find()) {
-               serviceIncludeList.add(Pattern.compile(m.group(1)));
-            }
-         });
-      } catch (IOException e) {
-         e.printStackTrace();
-      }   
-   }
+	private static void extendPatternList(List<Pattern> patternList, String pattern, String fileName)  {
+		Pattern p = Pattern.compile(pattern);
+
+		try (Stream<String> stream = Files.lines(Paths.get(fileName))) {
+			stream.forEach(s -> {
+				Matcher m = p.matcher(s);
+				if (m.find()) {
+					patternList.add(Pattern.compile(m.group(1)));
+				}
+			});
+		} catch (IOException e) {
+			e.printStackTrace();
+		}   
+	}
 }
