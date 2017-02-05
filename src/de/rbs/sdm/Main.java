@@ -3,9 +3,13 @@ package de.rbs.sdm;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import java.util.stream.Stream;
 
 import net.sourceforge.plantuml.FileFormat;
 
@@ -41,6 +45,9 @@ public class Main {
 				}
 				else if (args[i].equals("-i")) {
 					serviceIncludeList.add(Pattern.compile(args[++i]));
+				}
+				else if (args[i].equals("-if")) {
+				   extendIncludeList(serviceIncludeList, args[++i]);
 				}
 				else if (args[i].equals("-e")) {
 					bundleBlackList.add(Pattern.compile(args[++i]));
@@ -106,7 +113,7 @@ public class Main {
 			}
 		}
 		else {
-			System.out.println("sdm Version 1.02");
+			System.out.println("sdm Version 1.03");
 			System.out.println();
 			
 			System.out.println("Usage  : sdm [options] -o [output] [jar]+");
@@ -118,6 +125,8 @@ public class Main {
 			System.out.println("-s             Don't render diagram, instead generate PlantUML source-code");
 			System.out.println("-e [regex]     Exclude bundle from diagram (may be defined more than once)");
 			System.out.println("-E [regex]     Exclude identifier from diagram (may be defined more than once)");
+         System.out.println("-i [regex]     Include service (may be defined more than once)");
+         System.out.println("-if [file]     Include service (may be defined more than once)");
 			System.out.println("-l             Use 'lollipop' style");
 			System.out.println("-d             Use 'draft' style");
 			System.out.println("-c             Render on component-level (instead of bundle-level)");
@@ -132,4 +141,19 @@ public class Main {
 			System.out.println("  Example: set GRAPHVIZ_DOT=c:\\Program Files (x86)\\Graphviz2.38\\bin\\dot.exe");
 		}
 	}
+
+   private static void extendIncludeList(List<Pattern> serviceIncludeList, String fileName)  {
+      Pattern p = Pattern.compile("^service\\((.+)\\)");
+      
+      try (Stream<String> stream = Files.lines(Paths.get(fileName))) {
+         stream.forEach(s -> {
+            Matcher m = p.matcher(s);
+            if (m.find()) {
+               serviceIncludeList.add(Pattern.compile(m.group(1)));
+            }
+         });
+      } catch (IOException e) {
+         e.printStackTrace();
+      }   
+   }
 }
