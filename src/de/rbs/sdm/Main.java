@@ -22,6 +22,7 @@ public class Main {
 		List<Pattern> bundleWhiteList = new LinkedList<>();
 		List<Pattern> componentWhiteList = new LinkedList<>();
 		List<Pattern> serviceWhiteList = new LinkedList<>();
+		String plantUmlInc = "%plantumlinc%/osgi.iuml";
 		String outputFile = "";
 		boolean writeSource = false;
 		boolean verbose = false;
@@ -70,6 +71,9 @@ public class Main {
 				else if (args[i].equals("-d")) {
 					draft = true;
 				}
+				else if (args[i].equals("-pumlinc")) {
+				   plantUmlInc = args[++i];
+				}
 				else {
 					if (!args[i].startsWith("-")) {
 						inputFiles.add(args[i]);
@@ -94,8 +98,8 @@ public class Main {
 
 			PlantUmlRenderer renderer = new PlantUmlRenderer()
 					.setDraft(draft)
-					.setLollipopStyle(lollipopStyle);
-					//.setServiceIncludeList(serviceWhiteList);
+					.setLollipopStyle(lollipopStyle)
+					.setPlantUmlInc(plantUmlInc);
 
 			byte[] result;
 
@@ -132,18 +136,19 @@ public class Main {
 
 			System.out.println();
 			System.out.println("Options are:");
-			System.out.println("-o [file]      Write to given file instead of stdout");
-			System.out.println("-s             Don't render diagram, instead generate PlantUML source-code");
-			System.out.println("-e [regex]     Exclude identifier from diagram (may be defined more than once)");
-			System.out.println("-eb [regex]    Exclude bundle from diagram (may be defined more than once)");
-			System.out.println("-ib [regex]    Include bundle (may be defined more than once)");
-			System.out.println("-ic [regex]    Include component (may be defined more than once)");
-			System.out.println("-is [regex]    Include service (may be defined more than once)");
-			System.out.println("-isf [file]    Include service (may be defined more than once)");
-			System.out.println("-l             Use 'lollipop' style");
-			System.out.println("-d             Use 'draft' style");
-			System.out.println("-c             Render on component-level (instead of bundle-level)");
-			System.out.println("-v             Verbose output");
+			System.out.println("-o [file]         Write to given file instead of stdout");
+			System.out.println("-s                Don't render diagram, instead generate PlantUML source-code");
+			System.out.println("-e [regex]        Exclude identifier from diagram (may be defined more than once)");
+			System.out.println("-eb [regex]       Exclude bundle from diagram (may be defined more than once)");
+			System.out.println("-ib [regex]       Include bundle (may be defined more than once)");
+			System.out.println("-ic [regex]       Include component (may be defined more than once)");
+			System.out.println("-is [regex]       Include service (may be defined more than once)");
+			System.out.println("-isf [file]       Include service (may be defined more than once)");
+			System.out.println("-pumlinc [string] Path to the PlantUML include file");
+			System.out.println("-l                Use 'lollipop' style");
+			System.out.println("-d                Use 'draft' style");
+			System.out.println("-c                Render on component-level (instead of bundle-level)");
+			System.out.println("-v                Verbose output");
 
 			System.out.println();
 			System.out.println("Environment variables:");

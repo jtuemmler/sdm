@@ -2,10 +2,7 @@ package de.rbs.sdm;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.List;
 import java.util.Map.Entry;
-import java.util.regex.Pattern;
 
 import net.sourceforge.plantuml.FileFormat;
 import net.sourceforge.plantuml.FileFormatOption;
@@ -20,7 +17,7 @@ import net.sourceforge.plantuml.SourceStringReader;
 public class PlantUmlRenderer {
 	private boolean lollipopStyle = false;
 	private boolean draft = false;
-	private List<Pattern> serviceIncludeList = new ArrayList<>();
+	private String plantUmlInc = "osgi.iuml";
 
 	/**
 	 * Render a service-diagram an return a graphical representation of the specified format.
@@ -70,7 +67,7 @@ public class PlantUmlRenderer {
 				sb.append("!define LOLLY_STYLE 1\n");
 			}
 	
-			sb.append("!include %plantumlinc%/osgi.iuml\n\n");
+			sb.append("!include " + plantUmlInc + "\n\n");
 	
 			if (draft) {
 				sb.append("draft\n");
@@ -144,12 +141,12 @@ public class PlantUmlRenderer {
 	}
 	
 	/**
-	 * Defines which services have to be included in diagram
-	 * @param serviceIncludeList	List of regex-patterns that identify services to include
+	 * Defines which plant-uml include shall be included in diagram
+	 * @param plantUmlInc	Complete path to the plant-uml include file
 	 * @return Current instance of PlantUmlRenderer
 	 */
-	public PlantUmlRenderer setServiceIncludeList(List<Pattern> serviceIncludeList) {
-		this.serviceIncludeList = serviceIncludeList;
+	public PlantUmlRenderer setPlantUmlInc(String plantUmlInc) {
+	   this.plantUmlInc = plantUmlInc;
 		return this;
 	}
 
